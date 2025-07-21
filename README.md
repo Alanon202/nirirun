@@ -69,7 +69,7 @@ binds {
 
 Combining this  with the ```--move``` parameter will give you the option of sequentially moving the terminals in the order of opening (I think). I’m not sure how useful this is in practice, but it is available.
 
-```nirirun``` can also leverage the capabilities of modern terminals like ```foot``` or ```kitty``` (or presumably any other terminal that can set any of the following: ```--title```, ```--app-id``` or ```--class```) and read that value directly, to make running and manipulating terminal programs easier. In this example ```nirirun``` infers the ranger app id from foot without an explicit ```-c``` parameter:
+```nirirun``` can also leverage the capabilities of modern terminals like ```foot``` or ```kitty``` (or presumably any other terminal that can set ```--app-id``` or ```--class```) and read that value directly, to make running and manipulating terminal programs easier. In this example ```nirirun``` infers the ranger app id from foot without an explicit ```-c``` parameter:
 
 ```
 binds {
@@ -77,4 +77,4 @@ binds {
 }
 ```
 
-You can also leverage app-id capabilities to create window rules based on them. The title parameter is perhaps less useful in the terminal context, as pure title matching is less powerful, but it is there nonetheless.
+You can also leverage app-id capabilities to create window rules based on them.
