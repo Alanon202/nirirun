@@ -16,6 +16,7 @@ Options:"
     echo "                        before focusing."
     echo "  -s, --switch          If multiple windows exist, switch focus between them."
     echo "  -n, --no-launch       Do not launch the application if no window is found."
+    echo "  -t, --title <string>  Search for a window by its title instead of app_id."
     echo "  -h, --help            Show this help message."
     echo "
 Example (foot terminal):"
@@ -30,6 +31,7 @@ CLASS_OVERRIDE=""
 MOVE_TO_ME=false
 SWITCH_WINDOWS=false
 NO_LAUNCH=false
+TITLE_SEARCH=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -52,6 +54,14 @@ while [[ $# -gt 0 ]]; do
     -n | --no-launch)
         NO_LAUNCH=true
         shift
+        ;;
+    -t | --title)
+        if [ -z "$2" ]; then
+            echo "Error: --title requires an argument." >&2
+            exit 1
+        fi
+        TITLE_SEARCH="$2"
+        shift 2
         ;;
     -h | --help)
         print_usage
@@ -79,42 +89,56 @@ if [ $# -eq 0 ]; then
 fi
 COMMAND_TO_RUN=("$@")
 
-SEARCH_CLASS=""
-if [ -n "$CLASS_OVERRIDE" ]; then
-    SEARCH_CLASS="$CLASS_OVERRIDE"
+if [ -n "$TITLE_SEARCH" ]; then
+    WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$TITLE_SEARCH" \
+        '[.[] | select(.title and (.title | test($query; "i")))]')
 else
+    AUTO_DETECTED_TITLE=""
     for i in "${!COMMAND_TO_RUN[@]}"; do
         arg="${COMMAND_TO_RUN[$i]}"
-        if [[ "$arg" == --app-id=* || "$arg" == --class=* ]]; then
-            SEARCH_CLASS="${arg#*=}"
+        if [[ "$arg" == --title=* ]]; then
+            AUTO_DETECTED_TITLE="${arg#*=}"
             break
-        elif [[ "$arg" == "--app-id" || "$arg" == "--class" ]]; then
+        elif [[ "$arg" == "--title" ]]; then
             next_index=$((i + 1))
             if [[ $next_index -lt ${#COMMAND_TO_RUN[@]} ]]; then
-                SEARCH_CLASS="${COMMAND_TO_RUN[$next_index]}"
+                AUTO_DETECTED_TITLE="${COMMAND_TO_RUN[$next_index]}"
                 break
             fi
         fi
     done
-fi
 
-if [ -z "$SEARCH_CLASS" ]; then
-    EXECUTABLE_NAME=$(basename "${COMMAND_TO_RUN[0]}")
-    case "$EXECUTABLE_NAME" in
-    epiphany) SEARCH_CLASS="org.gnome.Epiphany" ;;
-    brave) SEARCH_CLASS="brave-browser" ;;
-    "tor-browser") SEARCH_CLASS="Tor Browser" ;;
-    "zen-browser") SEARCH_CLASS="zen" ;;
-    logseq) SEARCH_CLASS="Logseq" ;;
-    Telegram) SEARCH_CLASS="org.telegram.desktop" ;;
-    inkscape) SEARCH_CLASS="org.inkscape.Inkscape" ;;
-    viber) SEARCH_CLASS="com.viber.Viber" ;;
-    *) SEARCH_CLASS="$EXECUTABLE_NAME" ;;
-    esac
-fi
+    if [ -n "$AUTO_DETECTED_TITLE" ]; then
+        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$AUTO_DETECTED_TITLE" \
+            '[.[] | select(.title and (.title | test($query; "i")))]')
+    else
+        SEARCH_CLASS=""
+        if [ -n "$CLASS_OVERRIDE" ]; then
+            SEARCH_CLASS="$CLASS_OVERRIDE"
+        else
+            for i in "${!COMMAND_TO_RUN[@]}"; do
+                arg="${COMMAND_TO_RUN[$i]}"
+                if [[ "$arg" == --app-id=* || "$arg" == --class=* ]]; then
+                    SEARCH_CLASS="${arg#*=}"
+                    break
+                elif [[ "$arg" == "--app-id" || "$arg" == "--class" ]]; then
+                    next_index=$((i + 1))
+                    if [[ $next_index -lt ${#COMMAND_TO_RUN[@]} ]]; then
+                        SEARCH_CLASS="${COMMAND_TO_RUN[$next_index]}"
+                        break
+                    fi
+                fi
+            done
+        fi
 
-WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
-    '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
+        if [ -z "$SEARCH_CLASS" ]; then
+            SEARCH_CLASS=$(basename "${COMMAND_TO_RUN[0]}")
+        fi
+
+        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
+            '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
+    fi
+fi
 
 mapfile -t WINDOW_IDS < <(echo "$WINDOWS_DATA" | jq -r '.[].id')
 
