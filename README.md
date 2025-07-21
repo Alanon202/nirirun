@@ -38,6 +38,16 @@ binds {
 }
 ```
 
+You can use the title of an app instead of a class. Niri works better with id’s for window rule purposes, but matching by title is still useful for special windows with stable titles like Picture-in-Picture. Here ```nirirun``` will move a PiP window from the Zen Browser to the currently active workspace, if it exists:
+
+```
+binds {
+    Mod+I { spawn "nirirun" "-n" "-m" "-t" "Picture-in-Picture" "zen-browser"; }
+}
+```
+
+Note that this is a special carve-out for Picture-in-Picture, other functions like cycling through browser windows, if you use it, treat that PiP window just like any other browser window, and will cycle through it.
+
 ```nirirun``` focuses on the first window of a program it finds. If you have multiple windows of the same app open, you can focus on a window you didn’t want. That’s why you can also cycle between open windows of the same class. This is useful for example with multiple browser windows, as you can use the same shortcut to switch between multiple active windows. For this you use the ```--switch``` or ```-s``` parameter:
 
 ```
@@ -59,7 +69,7 @@ binds {
 
 Combining this  with the ```--move``` parameter will give you the option of sequentially moving the terminals in the order of opening (I think). I’m not sure how useful this is in practice, but it is available.
 
-```nirirun``` can also leverage the capabilities of modern terminals like ```foot``` or ```kitty``` (or presumably any other terminal that can set ```--app-id``` or ```--class```) and read that value directly, to make running and manipulating terminal programs easier. In this example ```nirirun``` infers the ranger app id from foot without an explicit ```-c``` parameter:
+```nirirun``` can also leverage the capabilities of modern terminals like ```foot``` or ```kitty``` (or presumably any other terminal that can set any of the following: ```--title```, ```--app-id``` or ```--class```) and read that value directly, to make running and manipulating terminal programs easier. In this example ```nirirun``` infers the ranger app id from foot without an explicit ```-c``` parameter:
 
 ```
 binds {
@@ -67,4 +77,4 @@ binds {
 }
 ```
 
-Note that you can also leverage these app-id capabilities to create window rules based on them.
+You can also leverage app-id capabilities to create window rules based on them. The title parameter is perhaps less useful in the terminal context, as pure title matching is less powerful, but it is there nonetheless.
