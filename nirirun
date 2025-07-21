@@ -88,56 +88,35 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 COMMAND_TO_RUN=("$@")
-
 if [ -n "$TITLE_SEARCH" ]; then
     WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$TITLE_SEARCH" \
         '[.[] | select(.title and (.title | test($query; "i")))]')
 else
-    AUTO_DETECTED_TITLE=""
-    for i in "${!COMMAND_TO_RUN[@]}"; do
-        arg="${COMMAND_TO_RUN[$i]}"
-        if [[ "$arg" == --title=* ]]; then
-            AUTO_DETECTED_TITLE="${arg#*=}"
-            break
-        elif [[ "$arg" == "--title" ]]; then
-            next_index=$((i + 1))
-            if [[ $next_index -lt ${#COMMAND_TO_RUN[@]} ]]; then
-                AUTO_DETECTED_TITLE="${COMMAND_TO_RUN[$next_index]}"
-                break
-            fi
-        fi
-    done
-
-    if [ -n "$AUTO_DETECTED_TITLE" ]; then
-        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$AUTO_DETECTED_TITLE" \
-            '[.[] | select(.title and (.title | test($query; "i")))]')
+    SEARCH_CLASS=""
+    if [ -n "$CLASS_OVERRIDE" ]; then
+        SEARCH_CLASS="$CLASS_OVERRIDE"
     else
-        SEARCH_CLASS=""
-        if [ -n "$CLASS_OVERRIDE" ]; then
-            SEARCH_CLASS="$CLASS_OVERRIDE"
-        else
-            for i in "${!COMMAND_TO_RUN[@]}"; do
-                arg="${COMMAND_TO_RUN[$i]}"
-                if [[ "$arg" == --app-id=* || "$arg" == --class=* ]]; then
-                    SEARCH_CLASS="${arg#*=}"
+        for i in "${!COMMAND_TO_RUN[@]}"; do
+            arg="${COMMAND_TO_RUN[$i]}"
+            if [[ "$arg" == --app-id=* || "$arg" == --class=* ]]; then
+                SEARCH_CLASS="${arg#*=}"
+                break
+            elif [[ "$arg" == "--app-id" || "$arg" == "--class" ]]; then
+                next_index=$((i + 1))
+                if [[ $next_index -lt ${#COMMAND_TO_RUN[@]} ]]; then
+                    SEARCH_CLASS="${COMMAND_TO_RUN[$next_index]}"
                     break
-                elif [[ "$arg" == "--app-id" || "$arg" == "--class" ]]; then
-                    next_index=$((i + 1))
-                    if [[ $next_index -lt ${#COMMAND_TO_RUN[@]} ]]; then
-                        SEARCH_CLASS="${COMMAND_TO_RUN[$next_index]}"
-                        break
-                    fi
                 fi
-            done
-        fi
-
-        if [ -z "$SEARCH_CLASS" ]; then
-            SEARCH_CLASS=$(basename "${COMMAND_TO_RUN[0]}")
-        fi
-
-        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
-            '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
+            fi
+        done
     fi
+
+    if [ -z "$SEARCH_CLASS" ]; then
+        SEARCH_CLASS=$(basename "${COMMAND_TO_RUN[0]}")
+    fi
+
+    WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
+        '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
 fi
 
 mapfile -t WINDOW_IDS < <(echo "$WINDOWS_DATA" | jq -r '.[].id')
