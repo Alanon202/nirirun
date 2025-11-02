@@ -15,6 +15,7 @@ Options:"
     echo "  -m, --move            If the window exists, move it to the current workspace"
     echo "                        before focusing."
     echo "  -s, --switch          If multiple windows exist, switch focus between them."
+    echo "  -w, --workspace       Only consider existing windows in the current workspace."
     echo "  -n, --no-launch       Do not launch the application if no window is found."
     echo "  -t, --title <string>  Search for a window by its title instead of app_id."
     echo "  -h, --help            Show this help message."
@@ -32,6 +33,7 @@ MOVE_TO_ME=false
 SWITCH_WINDOWS=false
 NO_LAUNCH=false
 TITLE_SEARCH=""
+SAME_WORKSPACE=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -53,6 +55,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     -n | --no-launch)
         NO_LAUNCH=true
+        shift
+        ;;
+    -w | --workspace)
+        SAME_WORKSPACE=true
         shift
         ;;
     -t | --title)
@@ -115,8 +121,14 @@ else
         SEARCH_CLASS=$(basename "${COMMAND_TO_RUN[0]}")
     fi
 
-    WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
-        '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
+    if [ "$SAME_WORKSPACE" = true ]; then
+        FOCUSED_WORKSPACE=$(niri msg -j workspaces | jq -c '.[] |select(.is_focused) | .id')    
+        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" --arg workspace $FOCUSED_WORKSPACE \
+            '[.[] | select(.app_id and .workspace_id==($workspace|tonumber) and (.app_id | test($query; "i")))]')
+    else
+        WINDOWS_DATA=$(niri msg --json windows | jq -c --arg query "$SEARCH_CLASS" \
+            '[.[] | select(.app_id and (.app_id | test($query; "i")))]')
+    fi
 fi
 
 mapfile -t WINDOW_IDS < <(echo "$WINDOWS_DATA" | jq -r '.[].id')
