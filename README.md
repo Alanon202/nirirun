@@ -7,6 +7,8 @@
 1. Focus on a window regardless of workspace
 2. Move a window from any workspace to the current workspace and focus it
 3. Cycle through different windows of the same program regardless of workspace
+4. Focus on a window bound to the same workspace
+5. Cycle through different windows of the same program bound to the same workspace
 
 All by using the same keybind you used to launch the specific app.
 
@@ -67,7 +69,7 @@ binds {
 }
 ```
 
-Combining this  with the ```--move``` parameter will give you the option of sequentially moving the terminals in the order of opening (I think). I’m not sure how useful this is in practice, but it is available.
+Combining this with the ```--move``` parameter will give you the option of sequentially moving the terminals in the order of opening (I think). I’m not sure how useful this is in practice, but it is available.
 
 ```nirirun``` can also leverage the capabilities of modern terminals like ```foot``` or ```kitty``` (or presumably any other terminal that can set ```--app-id``` or ```--class```) and read that value directly, to make running and manipulating terminal programs easier. In this example ```nirirun``` infers the ranger app id from foot without an explicit ```-c``` parameter:
 
@@ -76,5 +78,7 @@ binds {
     Mod+R { spawn "zsh" "-c" "nirirun -m foot --title 'ranger' --app-id 'ranger' -e ranger"; }
 }
 ```
+
+Another option to use alongside ```--switch``` is ```--workspace``` or ```-w```. This will only cycle through windows of the respective app in the current workspace. If no other instance of the app exists in the current workspace, it'll also spawn a new one.
 
 You can also leverage app-id capabilities to create window rules based on them.
